@@ -1,0 +1,860 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JeeV Call Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --teal:#005373;--teal2:#003d55;--teal3:#002a3a;
+  --cyan:#00F0C2;--cyan2:#00c9a3;--cyan3:#008f74;
+  --white:#fff;--off:#e8f8f5;--muted:#7ecdb8;
+  --panel:#004060;--card:#003550;--border:#00638a;
+  --gold:#FFD700;--red:#ff4d4d;--green:#00e676;
+}
+html,body{height:100%;overflow:hidden;background:var(--teal3);font-family:'Segoe UI',Arial,sans-serif;color:var(--white)}
+
+/* ══ SPLASH ══ */
+#splash{position:fixed;inset:0;background:var(--teal3);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px}
+#splash-logo{font-size:clamp(52px,13vw,84px);animation:floatBob 2.6s ease-in-out infinite}
+#splash h1{font-size:clamp(22px,5.5vw,38px);font-weight:800;color:var(--cyan);letter-spacing:2px;text-align:center;text-shadow:0 0 30px rgba(0,240,194,.55)}
+#splash p{font-size:clamp(12px,3vw,15px);color:var(--muted);text-align:center;max-width:340px;line-height:1.65}
+#splash-btn{padding:15px 40px;background:var(--cyan);color:var(--teal3);font-size:clamp(15px,3.8vw,20px);font-weight:800;border:none;border-radius:50px;cursor:pointer;letter-spacing:1px;animation:splashPulse 1.5s ease-in-out infinite}
+#splash-btn:active{transform:scale(.94)}
+.splash-feats{display:flex;flex-direction:column;gap:5px;align-items:center}
+.splash-feats span{font-size:clamp(11px,2.6vw,13px);color:var(--off);opacity:.8}
+@keyframes floatBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+@keyframes splashPulse{0%,100%{box-shadow:0 0 20px rgba(0,240,194,.4)}50%{box-shadow:0 0 50px rgba(0,240,194,.9)}}
+
+/* ══ LAYOUT ══ */
+#root{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#topbar{background:var(--teal3);border-bottom:2px solid var(--cyan3);padding:5px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+#topbar h1{font-size:clamp(11px,3vw,17px);font-weight:700;color:var(--cyan);letter-spacing:.8px;text-shadow:0 0 10px rgba(0,240,194,.4)}
+#stats-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+#reset-btn{background:var(--cyan);color:var(--teal3);border:none;border-radius:20px;padding:6px 12px;font-size:clamp(9px,2.1vw,12px);font-weight:700;cursor:pointer;white-space:nowrap;transition:transform .1s,opacity .2s;}
+#reset-btn:active{transform:scale(.96)}
+.stat-chip{background:var(--teal2);border:1px solid var(--cyan3);border-radius:20px;padding:2px 8px;font-size:clamp(9px,2.1vw,12px);display:flex;align-items:center;gap:3px}
+.stat-chip span{color:var(--cyan);font-weight:700}
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ══ LEFT PANEL ══ */
+#left{flex:0 0 50%;max-width:50%;background:var(--teal2);display:flex;flex-direction:column;border-right:2px solid var(--cyan3);overflow:hidden;position:relative}
+#floor-title{padding:5px 10px;font-size:clamp(9px,2vw,11px);color:var(--muted);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+
+/* ══ FLOOR — tight fit, zero empty space ══ */
+#floor-wrap{overflow-y:auto;overflow-x:hidden;padding:5px;scrollbar-width:thin;scrollbar-color:var(--cyan3) transparent;
+  flex:1 1 auto;min-height:0;max-height:calc(100vh - 280px);
+}
+#floor-grid{display:flex;flex-direction:column;gap:8px;}
+.floor-group{display:flex;flex-direction:column;gap:6px;}
+.floor-area-title{font-size:clamp(8px,1.8vw,10px);color:var(--muted);font-weight:700;padding:4px 8px;background:rgba(0,255,169,.08);border-radius:10px;text-transform:uppercase;letter-spacing:.5px;}
+.floor-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(48px,1fr));gap:6px;}
+.floor-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;min-height:70px;transition:transform .2s;}
+.floor-card.active{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,240,194,.18);}
+.desk-icons{display:grid;grid-template-columns:repeat(auto-fit,minmax(18px,1fr));gap:2px;width:100%;justify-items:center;}
+.desk-icon-unit{font-size:18px;line-height:1;}
+.floor-card.many .desk-icon-unit{font-size:14px;}
+.floor-card.too-many .desk-icon-unit{font-size:12px;}
+.floor-card .floor-count{font-size:9px;color:var(--muted);margin-top:2px;}
+.floor-card .floor-label{font-size:9px;color:var(--off);text-align:center;line-height:1.2;}
+
+/* ══ EMPTY FLOOR ══ */
+#floor-empty{padding:10px 12px;opacity:.4;text-align:center;font-size:10px;color:var(--muted)}
+
+/* ══ DESK CARDS ══ */
+.desk-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 3px;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative;animation:popIn .28s cubic-bezier(.34,1.56,.64,1)}
+.desk-card.active{border-color:var(--cyan);box-shadow:0 0 6px rgba(0,240,194,.25)}
+.desk-icon{font-size:clamp(14px,3vw,18px);line-height:1}
+.desk-name{font-size:clamp(5px,1.3vw,7px);color:var(--muted);text-align:center;line-height:1.1;word-break:break-word}
+.desk-count{font-size:clamp(7px,1.6vw,9px);font-weight:700;color:var(--cyan)}
+.pulse-dot{width:5px;height:5px;border-radius:50%;background:var(--green);position:absolute;top:3px;right:3px;animation:pulseDot 1.4s ease-in-out infinite}
+.desk-proc{font-size:clamp(5px,1.2vw,6px);color:var(--green);animation:blink 1.3s infinite}
+
+/* ══ SPACER between floor and button ══ */
+#floor-spacer{flex:1}
+
+/* ══ ANSWER THE CALL — raised higher ══ */
+#core-wrap{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 0 14px;
+  background:linear-gradient(180deg,transparent,rgba(0,42,58,.85) 30%);
+}
+#core-btn{
+  width:clamp(80px,17vw,108px);height:clamp(80px,17vw,108px);
+  border-radius:50%;
+  background:conic-gradient(from 180deg,#00a882,#00F0C2,#00d4a8,#00a882);
+  border:3px solid rgba(255,255,255,.92);
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  animation:corePulse 2.2s ease-in-out infinite;
+  box-shadow:0 0 0 0 rgba(0,240,194,.7),0 6px 28px rgba(0,0,0,.5);
+  user-select:none;-webkit-user-select:none;position:relative;
+  transition:transform .07s;
+}
+#core-btn:active{transform:scale(.86)!important;animation:none}
+/* Classic telephone SVG icon inside button */
+#phone-svg{width:clamp(32px,7vw,44px);height:clamp(32px,7vw,44px);filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+#core-label{font-size:clamp(6px,1.35vw,8.5px);font-weight:800;color:var(--teal3);text-align:center;line-height:1.15;letter-spacing:.3px;text-transform:uppercase}
+#cps-label{font-size:clamp(8px,1.9vw,11px);color:var(--muted)}
+
+@keyframes corePulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(0,240,194,.8),0 6px 28px rgba(0,0,0,.5)}
+  45%{transform:scale(1.055);box-shadow:0 0 0 14px rgba(0,240,194,.0),0 6px 28px rgba(0,0,0,.5)}
+}
+@keyframes answerFlash{
+  0%{transform:scale(.86)}
+  18%{transform:scale(1.22);box-shadow:0 0 0 22px rgba(0,240,194,.3),0 6px 28px rgba(0,0,0,.5)}
+  45%{transform:scale(1.05);box-shadow:0 0 0 36px rgba(0,240,194,.0),0 6px 28px rgba(0,0,0,.5)}
+  100%{transform:scale(1)}
+}
+.btn-answering{animation:answerFlash .52s ease-out forwards!important}
+
+/* ══ BIG MONEY FLOAT ══ */
+.float-money{
+  position:fixed;pointer-events:none;
+  font-size:clamp(20px,5vw,30px);  /* ← much bigger */
+  font-weight:900;color:var(--cyan);z-index:9999;
+  animation:floatUpMoney 1.1s cubic-bezier(.2,.8,.3,1) forwards;
+  white-space:nowrap;
+  text-shadow:0 0 16px rgba(0,240,194,.85),0 2px 6px rgba(0,0,0,.5);
+  letter-spacing:-.5px;
+}
+
+/* ══ RIGHT PANEL ══ */
+#right{flex:1;background:var(--panel);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--cyan3) transparent;padding-bottom:8px}
+#right-inner{padding:6px 8px}
+.dept-title{font-size:clamp(9px,2.3vw,12px);font-weight:700;color:var(--cyan);padding:5px 8px;background:var(--teal3);border-radius:6px;margin:6px 0 4px;letter-spacing:.5px;text-transform:uppercase;border-left:3px solid var(--cyan)}
+.staff-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:5px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:border-color .18s,background .18s;position:relative;overflow:hidden}
+.staff-card:hover,.staff-card:active{border-color:var(--cyan);background:#004570}
+.staff-card.cant-afford{opacity:.5}
+.staff-icon{font-size:clamp(15px,3.5vw,22px);flex-shrink:0;width:28px;text-align:center}
+.staff-info{flex:1;min-width:0}
+.staff-name{font-size:clamp(9px,2.2vw,12px);font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-desc{font-size:clamp(7px,1.7vw,9px);color:var(--muted);line-height:1.3}
+.staff-owned{font-size:clamp(7px,1.7vw,9px);color:var(--cyan);font-weight:700}
+.staff-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.staff-cost{font-size:clamp(8px,1.9vw,11px);font-weight:700;color:var(--gold)}
+.buy-btn{background:var(--cyan3);border:none;color:var(--white);border-radius:5px;padding:3px 6px;font-size:clamp(7px,1.7vw,10px);font-weight:700;cursor:pointer;white-space:nowrap}
+.buy-btn:active{background:var(--cyan)}
+.upgrade-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:border-color .18s}
+.upgrade-card:hover{border-color:var(--gold)}
+.upgrade-card.bought{border-color:var(--green);opacity:.65;cursor:default}
+.upgrade-icon{font-size:17px;flex-shrink:0}
+.upgrade-info{flex:1}
+.upgrade-name{font-size:clamp(9px,2.2vw,11px);font-weight:700;color:var(--white)}
+.upgrade-desc{font-size:clamp(7px,1.7vw,9px);color:var(--muted)}
+.upgrade-cost{font-size:clamp(8px,1.9vw,11px);font-weight:700;color:var(--gold);flex-shrink:0}
+.upgrade-bought-badge{font-size:clamp(7px,1.7vw,9px);color:var(--green);font-weight:700}
+.gen-bar-wrap{height:3px;background:var(--teal3);border-radius:2px;overflow:hidden;margin-top:2px}
+.gen-bar{height:100%;background:linear-gradient(90deg,var(--cyan3),var(--cyan));border-radius:2px;width:0%;transition:width .1s linear}
+
+/* ══ SELL BUTTON in right-inner ══ */
+.sell-section{background:linear-gradient(135deg,#1a0a00,#3d1c00);border:2px solid var(--gold);border-radius:10px;padding:10px 12px;margin:8px 0 4px;text-align:center}
+.sell-section h3{color:var(--gold);font-size:clamp(11px,2.5vw,14px);font-weight:800;margin-bottom:4px}
+.sell-section p{color:var(--off);font-size:clamp(9px,2vw,11px);margin-bottom:8px;line-height:1.4}
+.sell-progress-wrap{height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.sell-progress-bar{height:100%;background:linear-gradient(90deg,var(--gold),#fff59d);border-radius:3px;transition:width .5s ease}
+.sell-progress-label{font-size:clamp(8px,1.9vw,10px);color:var(--gold);margin-bottom:6px}
+#sell-btn{background:var(--gold);color:#1a0a00;font-size:clamp(10px,2.4vw,13px);font-weight:800;border:none;border-radius:8px;padding:7px 16px;cursor:pointer;letter-spacing:.5px;opacity:.4;transition:opacity .3s,transform .1s}
+#sell-btn.ready{opacity:1;animation:sellPulse 1.8s ease-in-out infinite}
+#sell-btn.ready:active{transform:scale(.94)}
+#sell-btn:not(.ready){cursor:not-allowed}
+@keyframes sellPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.6)}50%{box-shadow:0 0 0 10px rgba(255,215,0,.0)}}
+
+/* ══ VOLUME WIDGET — TOP LEFT of topbar ══ */
+#vol-widget{
+  display:none;align-items:center;gap:6px;
+  /* inline in topbar — no position:fixed */
+}
+#vol-icon{font-size:16px;cursor:pointer;user-select:none;flex-shrink:0}
+#vol-slider{-webkit-appearance:none;appearance:none;width:clamp(50px,8vw,80px);height:3px;border-radius:2px;background:var(--border);outline:none;cursor:pointer;flex-shrink:0}
+#vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--cyan);cursor:pointer}
+#vol-slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--cyan);cursor:pointer;border:none}
+#music-toggle{background:var(--teal2);border:1px solid var(--border);border-radius:10px;padding:1px 6px;font-size:9px;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0}
+#music-toggle.on{background:var(--cyan3);border-color:var(--cyan);color:var(--white)}
+
+/* ══ END GAME OVERLAY ══ */
+#endgame{position:fixed;inset:0;background:rgba(0,15,25,.92);z-index:99998;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center}
+#endgame h1{font-size:clamp(26px,7vw,52px);font-weight:900;color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,.7);letter-spacing:2px}
+#endgame .eg-money{font-size:clamp(28px,8vw,60px);font-weight:900;color:var(--cyan);text-shadow:0 0 30px rgba(0,240,194,.7)}
+#endgame p{font-size:clamp(13px,3.2vw,18px);color:var(--off);max-width:380px;line-height:1.6}
+#endgame .eg-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px;width:100%}
+.eg-stat{background:var(--teal3);border:1px solid var(--cyan3);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:3px}
+.eg-stat-label{font-size:clamp(9px,2.2vw,11px);color:var(--muted)}
+.eg-stat-val{font-size:clamp(13px,3.2vw,18px);font-weight:800;color:var(--white)}
+#endgame .eg-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.eg-btn{padding:12px 28px;border:none;border-radius:30px;font-size:clamp(13px,3.2vw,16px);font-weight:800;cursor:pointer;letter-spacing:.5px}
+.eg-btn.primary{background:var(--cyan);color:var(--teal3)}
+.eg-btn.secondary{background:transparent;border:2px solid var(--muted);color:var(--muted)}
+.eg-btn:active{transform:scale(.94)}
+@keyframes egPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+#endgame.show{display:flex;animation:egPop .5s cubic-bezier(.34,1.56,.64,1)}
+
+/* ══ ANIMATIONS ══ */
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes popIn{from{transform:scale(0) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes floatUpMoney{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-110px) scale(1.1);opacity:0}}
+@keyframes bubbleFloat{0%{transform:translateY(0) scale(1);opacity:.9}100%{transform:translateY(-50px) scale(.7);opacity:0}}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes penaltyShake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-7px)}30%,60%,90%{transform:translateX(7px)}}
+@keyframes coinRain{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+.speech-bubble{position:absolute;background:rgba(0,230,118,.9);color:#002;font-size:9px;font-weight:700;padding:2px 5px;border-radius:7px;pointer-events:none;animation:bubbleFloat 1.3s ease-out forwards;z-index:20;white-space:nowrap;bottom:100%;left:4px}
+.speech-bubble::after{content:'';position:absolute;bottom:-5px;left:7px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid rgba(0,230,118,.9)}
+#notif{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.notif-item{background:var(--teal3);border:1px solid var(--cyan);border-radius:8px;padding:6px 14px;font-size:11px;color:var(--white);animation:slideIn .28s ease,fadeOut .4s ease 2.5s forwards;max-width:280px;box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap}
+.notif-item.bad{border-color:var(--red)}
+.notif-item.good{border-color:var(--green)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--cyan3);border-radius:2px}
+@media(max-width:480px){
+  #left{flex:0 0 47%;max-width:47%}
+  #floor-grid{grid-template-columns:repeat(auto-fill,minmax(50px,1fr))}
+  .staff-card{padding:5px;gap:5px}
+}
+@media(max-width:360px){#left{flex:0 0 45%;max-width:45%}}
+#milestone{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--teal3);border:2px solid var(--gold);border-radius:14px;padding:16px 24px;text-align:center;z-index:9999;display:none;animation:popIn .35s ease}
+#milestone h2{color:var(--gold);font-size:17px;margin-bottom:5px}
+#milestone p{color:var(--off);font-size:12px}
+
+/* coin rain particle */
+.coin-particle{position:fixed;pointer-events:none;font-size:clamp(14px,3vw,22px);z-index:99997;animation:coinRain 2.2s ease-in forwards}
+</style>
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <div id="splash-logo">☎️</div>
+  <h1>JeeV Call Center</h1>
+  <p>Build your call center empire from the ground up. One answered call at a time.</p>
+  <div class="splash-feats">
+    <span>🎵 Procedural BGM + eargasm SFX</span>
+    <span>📊 8 staff types · 10 upgrades · offline income</span>
+    <span>🏆 Sell your company for the ultimate win!</span>
+  </div>
+  <button id="splash-btn" onclick="startGame()">☎️ START YOUR SHIFT</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="root" style="display:none">
+  <div id="topbar">
+    <h1>☎️ JeeV Call Center</h1>
+    <!-- AUDIO CONTROLS inline in topbar, no longer blocking anything -->
+    <div id="vol-widget">
+      <span id="vol-icon" onclick="toggleMute()">🔊</span>
+      <input type="range" id="vol-slider" min="0" max="100" value="65" oninput="setVolume(this.value)">
+      <button id="music-toggle" class="on" onclick="toggleMusic()">🎵 ON</button>
+    </div>
+    <div id="stats-row">
+      <div class="stat-chip">💰 $<span id="s-cash">0</span></div>
+      <div class="stat-chip">⚡ <span id="s-cps">0</span>/s</div>
+      <div class="stat-chip">📊 $<span id="s-total">0</span></div>
+    </div>
+    <button id="reset-btn" onclick="newGame()">🔄 New Game</button>
+  </div>
+
+  <div id="main">
+    <!-- LEFT: OFFICE FLOOR + BUTTON -->
+    <div id="left">
+      <div id="floor-title">
+        <span>🏢 Office Floor</span>
+        <span id="floor-label" style="color:var(--cyan);font-weight:600">0 staff</span>
+      </div>
+
+      <!-- floor grid — shrinks to fit content -->
+      <div id="floor-wrap">
+        <div id="floor-empty">🪑 Floor empty — hire your first agent!</div>
+        <div id="floor-grid"></div>
+      </div>
+
+      <!-- spacer pushes button up just enough -->
+      <div id="floor-spacer"></div>
+
+      <!-- ANSWER THE CALL -->
+      <div id="core-wrap">
+        <span id="cps-label">tap to earn</span>
+        <div id="core-btn">
+          <!-- Classic telephone SVG — handset shape -->
+          <svg id="phone-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 10c0 0 4-2 6 2l4 8c1 2 0 4-2 5l-3 2c2 6 8 14 14 17l2-3c1-2 3-3 5-2l8 4c4 2 2 6 2 6l-2 4c-2 3-6 4-10 2C22 48 16 38 13 26c-2-4-1-8 1-10l2-4 -2 -2z" fill="rgba(0,42,58,0.9)" stroke="rgba(0,42,58,0.5)" stroke-width="1"/>
+            <path d="M13 12c1-2 3-4 6-3l4 1c2 1 3 3 3 5v5c0 2-1 3-3 4-1 0-1 1 0 2 3 5 7 9 12 11 1 1 2 0 2-1 1-2 2-3 4-3h5c2 0 4 1 5 3l1 4c1 3-1 5-3 6-1 1-3 1-4 1C28 48 16 36 13 20c0-1 0-3 0-4v-1 -3z" fill="var(--teal3)"/>
+          </svg>
+          <div id="core-label">Answer<br>the Call</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: STAFF & UPGRADES (no fixed overlays blocking it anymore) -->
+    <div id="right">
+      <div id="right-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ END GAME OVERLAY ══ -->
+<div id="endgame">
+  <div style="font-size:clamp(40px,10vw,72px)">🏆</div>
+  <h1>COMPANY SOLD!</h1>
+  <div class="eg-money" id="eg-sale-price">$0</div>
+  <p id="eg-flavor">JeeV Call Center has been acquired! You built something incredible.</p>
+  <div class="eg-stats">
+    <div class="eg-stat"><div class="eg-stat-label">Total Earned</div><div class="eg-stat-val" id="eg-total">$0</div></div>
+    <div class="eg-stat"><div class="eg-stat-label">Staff Hired</div><div class="eg-stat-val" id="eg-staff">0</div></div>
+    <div class="eg-stat"><div class="eg-stat-label">Peak CPS</div><div class="eg-stat-val" id="eg-cps">0/s</div></div>
+    <div class="eg-stat"><div class="eg-stat-label">Upgrades</div><div class="eg-stat-val" id="eg-upg">0/10</div></div>
+  </div>
+  <div class="eg-btns">
+    <button class="eg-btn primary" onclick="newGame()">🔄 Start New Game</button>
+  </div>
+</div>
+
+<div id="notif"></div>
+<div id="milestone"><h2 id="m-title">🎉</h2><p id="m-text"></p></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════════════════════════════════
+   WEB AUDIO ENGINE
+   ══════════════════════════════════════ */
+let AC=null,masterGain=null,musicGain=null,sfxGain=null;
+let musicPlaying=false,musicEnabled=true,muted=false,currentVol=0.65;
+let musicScheduler=null,nextNoteTime=0,beatCount=0;
+
+function initAudio(){
+  try{
+    AC=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=AC.createGain();masterGain.gain.setValueAtTime(currentVol,AC.currentTime);masterGain.connect(AC.destination);
+    sfxGain=AC.createGain();sfxGain.gain.setValueAtTime(1,AC.currentTime);sfxGain.connect(masterGain);
+    musicGain=AC.createGain();musicGain.gain.setValueAtTime(0.38,AC.currentTime);musicGain.connect(masterGain);
+    startBGM();
+  }catch(e){console.warn('WebAudio unavailable',e);}
+}
+
+/* ── BGM ── */
+const BPM=128,BEAT=60/128,BAR=BEAT*4;
+const MELODY=[523.25,587.33,659.25,783.99,880,1046.5,1174.66,1318.51,1567.98,1760];
+const BASS=[65.41,98,87.31,98];
+const CHORDS=[[261.63,392],[196,293.66],[174.61,261.63],[196,293.66]];
+const MSEQ=[0,null,2,null,4,null,2,4,5,null,4,null,2,null,0,null];
+const MSEQ2=[7,null,5,null,4,null,2,null,0,null,2,4,5,null,7,null];
+
+function noteOn(freq,type,t,dur,vol,dest){
+  if(!AC)return;
+  const o=AC.createOscillator();o.type=type;o.frequency.setValueAtTime(freq,t);
+  const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.015);g.gain.setValueAtTime(vol,t+dur*.7);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.01);
+}
+function hihat(t,vol){
+  if(!AC)return;
+  const buf=AC.createBuffer(1,Math.floor(AC.sampleRate*.04),AC.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+  const s=AC.createBufferSource();s.buffer=buf;
+  const hpf=AC.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=8000;
+  const g=AC.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.038);
+  s.connect(hpf);hpf.connect(g);g.connect(musicGain);s.start(t);s.stop(t+.045);
+}
+function kick(t){
+  if(!AC)return;
+  const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
+  const g=AC.createGain();g.gain.setValueAtTime(.7,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);
+  o.connect(g);g.connect(musicGain);o.start(t);o.stop(t+.2);
+}
+function snare(t){
+  if(!AC)return;
+  const buf=AC.createBuffer(1,Math.floor(AC.sampleRate*.1),AC.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+  const s=AC.createBufferSource();s.buffer=buf;
+  const g=AC.createGain();g.gain.setValueAtTime(.28,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);
+  s.connect(g);g.connect(musicGain);s.start(t);s.stop(t+.12);
+  const o=AC.createOscillator();o.type='triangle';o.frequency.setValueAtTime(220,t);
+  const g2=AC.createGain();g2.gain.setValueAtTime(.15,t);g2.gain.exponentialRampToValueAtTime(.001,t+.06);
+  o.connect(g2);g2.connect(musicGain);o.start(t);o.stop(t+.08);
+}
+function scheduleMusicBar(barStart,barIdx){
+  if(!AC||!musicEnabled)return;
+  const pat=(barIdx%4<2)?MSEQ:MSEQ2;
+  noteOn(BASS[barIdx%4],'sawtooth',barStart,BAR*.95,.22,musicGain);
+  [0,.5].forEach(h=>{CHORDS[barIdx%4].forEach(f=>noteOn(f,'square',barStart+h*BAR,BAR*.45,.08,musicGain));});
+  pat.forEach((mi,i)=>{if(mi===null)return;noteOn(MELODY[mi],'triangle',barStart+i*(BAR/16),(BAR/16)*.82,.32,musicGain);});
+  [0,1,2,3].forEach(b=>{const bt=barStart+b*BEAT;if(b===0||b===2)kick(bt);if(b===1||b===3)snare(bt);});
+  for(let i=0;i<8;i++)hihat(barStart+i*BEAT*.5,i%2===0?.12:.07);
+}
+function startBGM(){
+  if(!AC||musicPlaying)return;musicPlaying=true;nextNoteTime=AC.currentTime+.1;beatCount=0;
+  function tick(){if(!musicEnabled){musicPlaying=false;return;}while(nextNoteTime<AC.currentTime+.4){scheduleMusicBar(nextNoteTime,beatCount);nextNoteTime+=BAR;beatCount++;}musicScheduler=setTimeout(tick,100);}
+  tick();
+}
+function stopBGM(){musicPlaying=false;if(musicScheduler){clearTimeout(musicScheduler);musicScheduler=null;}}
+
+/* ── ANSWER SFX (eargasm) ── */
+function playAnswerSFX(){
+  if(!AC)return;const now=AC.currentTime;
+  [261.63,329.63,392,523.25].forEach((f,i)=>{
+    const t=now+i*.028;
+    const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*1.002,t+.18);
+    const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.3,t+.018);g.gain.exponentialRampToValueAtTime(.001,t+.34);
+    o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.38);
+    const o2=AC.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(f*2,t+.01);
+    const g2=AC.createGain();g2.gain.setValueAtTime(.0001,t+.01);g2.gain.exponentialRampToValueAtTime(.1,t+.025);g2.gain.exponentialRampToValueAtTime(.001,t+.3);
+    o2.connect(g2);g2.connect(sfxGain);o2.start(t+.01);o2.stop(t+.34);
+  });
+  const tb=AC.createBuffer(1,Math.floor(AC.sampleRate*.03),AC.sampleRate);const td=tb.getChannelData(0);for(let i=0;i<td.length;i++)td[i]=(Math.random()*2-1);
+  const ts=AC.createBufferSource();ts.buffer=tb;
+  const tlpf=AC.createBiquadFilter();tlpf.type='lowpass';tlpf.frequency.value=600;
+  const tg=AC.createGain();tg.gain.setValueAtTime(.5,now);tg.gain.exponentialRampToValueAtTime(.001,now+.032);
+  ts.connect(tlpf);tlpf.connect(tg);tg.connect(sfxGain);ts.start(now);ts.stop(now+.035);
+  [2093,2637,3136].forEach((f,i)=>{const t=now+.15+i*.022;const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.13,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.14);o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.16);});
+  [261.63,523.25].forEach((f,i)=>{const t=now+.22+i*.018;const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.08,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.2);});
+}
+function playSuccessChime(){
+  if(!AC)return;const now=AC.currentTime;
+  [523.25,659.25,783.99].forEach((f,i)=>{const t=now+i*.07;const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.32,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.3);});
+}
+function playHireSFX(){
+  if(!AC)return;const now=AC.currentTime;
+  [392,493.88,587.33,783.99].forEach((f,i)=>{const t=now+i*.06;const o=AC.createOscillator();o.type='square';o.frequency.setValueAtTime(f,t);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.14,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.14);});
+}
+function playPenaltySFX(){
+  if(!AC)return;const now=AC.currentTime;
+  [0,.06,.12].forEach(d=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(110,now+d);o.frequency.exponentialRampToValueAtTime(50,now+d+.1);const g=AC.createGain();g.gain.setValueAtTime(.3,now+d);g.gain.exponentialRampToValueAtTime(.001,now+d+.12);o.connect(g);g.connect(sfxGain);o.start(now+d);o.stop(now+d+.14);});
+}
+function playCashDropSFX(){
+  if(!AC)return;const now=AC.currentTime;
+  [1046.5,1318.51,1567.98,2093].forEach((f,i)=>{const t=now+i*.04;const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.22);});
+}
+function playSellFanfare(){
+  if(!AC)return;const now=AC.currentTime;
+  // triumphant ascending chord + drum hits
+  [[523.25,659.25,783.99,1046.5],[659.25,783.99,987.77,1318.51]].forEach((chord,ci)=>{
+    chord.forEach((f,fi)=>{
+      const t=now+ci*.18+fi*.02;
+      const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);
+      const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.28,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.7);
+      o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.75);
+    });
+  });
+  // final big chord
+  [523.25,659.25,783.99,1046.5,1318.51].forEach((f,i)=>{
+    const t=now+.42+i*.015;
+    const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);
+    const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.03);g.gain.exponentialRampToValueAtTime(.001,t+1.4);
+    o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+1.5);
+  });
+  // drum accents
+  kick(now);kick(now+.18);kick(now+.42);
+}
+
+function setVolume(val){currentVol=val/100;if(!muted&&masterGain)masterGain.gain.setValueAtTime(currentVol,AC.currentTime);document.getElementById('vol-icon').textContent=val==0?'🔇':val<40?'🔉':'🔊';}
+function toggleMute(){muted=!muted;if(masterGain)masterGain.gain.setValueAtTime(muted?0:currentVol,AC.currentTime);document.getElementById('vol-icon').textContent=muted?'🔇':'🔊';}
+function toggleMusic(){
+  musicEnabled=!musicEnabled;const btn=document.getElementById('music-toggle');
+  if(musicEnabled){btn.textContent='🎵 ON';btn.classList.add('on');if(musicGain)musicGain.gain.setValueAtTime(.38,AC.currentTime);startBGM();}
+  else{btn.textContent='🎵 OFF';btn.classList.remove('on');stopBGM();if(musicGain)musicGain.gain.setValueAtTime(0,AC.currentTime);}
+}
+window.setVolume=setVolume;window.toggleMute=toggleMute;window.toggleMusic=toggleMusic;
+
+/* ══ GAME START ══ */
+window.startGame=function(){
+  initAudio();
+  document.getElementById('splash').style.display='none';
+  document.getElementById('root').style.display='flex';
+  document.getElementById('vol-widget').style.display='flex';
+  playSuccessChime();
+  init();
+};
+
+/* ══ GAME STATE ══ */
+const G={cash:0,totalEarned:0,clickValue:1,lastTick:Date.now(),cpsCache:0,peakCps:0,milestones:{},offlineBonus:1,_lastRender:0,gameOver:false};
+const SELL_UNLOCK_CASH=100000000;
+
+/* Sell tiers: earn X cash to unlock, sell for Y multiplier of current cash */
+const SELL_TIERS=[
+  {threshold:5000,    label:'Micro Exit',   mult:1.5,  flavor:'A local investor picks up JeeV for a tidy profit!'},
+  {threshold:50000,   label:'Series A Exit',mult:2,    flavor:'A VC firm acquires JeeV. You celebrate with champagne!'},
+  {threshold:500000,  label:'Corp Buyout',  mult:2.5,  flavor:'A corporation buys JeeV. Your employees get retention bonuses!'},
+  {threshold:5000000, label:'IPO Exit',     mult:3,    flavor:'JeeV goes public! You ring the stock exchange bell!'},
+  {threshold:25000000,label:'MEGA Acquisition',mult:4, flavor:'Tech giant acquires JeeV for $100M! You are now a legend.'},
+];
+
+const STAFF=[
+  {id:'agent',   dept:'frontline',name:'Call Agent',    icon:'🧑‍💼',desc:'Answers calls, earns $0.5/s each',    baseCost:15,   costMult:1.12,owned:0,baseCps:.5, genInterval:2000},
+  {id:'teamlead',dept:'frontline',name:'Team Leader',   icon:'👔',  desc:'Buffs agents ×2 production',          baseCost:180,  costMult:1.14,owned:0,baseCps:3,  genInterval:5000},
+  {id:'opsmgr',  dept:'frontline',name:'Ops Manager',   icon:'📊',  desc:'Speeds up all generation +10%',       baseCost:1200, costMult:1.15,owned:0,baseCps:12, genInterval:8000},
+  {id:'it',      dept:'tech',     name:'IT Staff',       icon:'🖥️', desc:'Auto-clicks tickets: +$2/s',          baseCost:500,  costMult:1.13,owned:0,baseCps:2,  genInterval:3000},
+  {id:'wfm',     dept:'tech',     name:'WFM Analyst',   icon:'📈',  desc:'Increases offline income ×1.5',       baseCost:2500, costMult:1.16,owned:0,baseCps:8,  genInterval:6000},
+  {id:'hr',      dept:'culture',  name:'HR Manager',    icon:'🤝',  desc:'Global speed +5% per hire',           baseCost:800,  costMult:1.14,owned:0,baseCps:4,  genInterval:4000},
+  {id:'facilities',dept:'culture',name:'Facilities',    icon:'🧹',  desc:'Spawns random cash drops on screen',  baseCost:3000, costMult:1.17,owned:0,baseCps:10, genInterval:7000},
+  {id:'security',dept:'culture',  name:'Security Guard',icon:'🛡️', desc:'Protects against cash penalty events',baseCost:4500, costMult:1.18,owned:0,baseCps:6,  genInterval:9000},
+];
+
+const UPGRADES=[
+  {id:'u1', name:'Noise-Cancelling Headsets',icon:'🎧',cost:200,    desc:'Agent output ×2',       bought:false,apply:()=>{STAFF[0].baseCps*=2}},
+  {id:'u2', name:'CRM Software Suite',       icon:'💾',cost:1000,   desc:'All CPS +25%',          bought:false,apply:()=>{STAFF.forEach(s=>s.baseCps*=1.25)}},
+  {id:'u3', name:'Standing Desks',           icon:'🪑',cost:5000,   desc:'Agents ×3 output',      bought:false,apply:()=>{STAFF[0].baseCps*=3}},
+  {id:'u4', name:'Barista Coffee Cart',      icon:'☕',cost:15000,  desc:'Click value ×5',        bought:false,apply:()=>{G.clickValue*=5}},
+  {id:'u5', name:'AI Call Routing',          icon:'🤖',cost:50000,  desc:'All CPS ×2',            bought:false,apply:()=>{STAFF.forEach(s=>s.baseCps*=2)}},
+  {id:'u6', name:'Dedicated Server Room',    icon:'🖧',cost:120000, desc:'IT auto-click ×3',      bought:false,apply:()=>{STAFF[3].baseCps*=3}},
+  {id:'u7', name:'Leadership Academy',       icon:'🏅',cost:250000, desc:'Team Leader buffs ×2',  bought:false,apply:()=>{STAFF[1].baseCps*=2}},
+  {id:'u8', name:'24/7 Operations',          icon:'🌙',cost:600000, desc:'Offline income ×3',     bought:false,apply:()=>{G.offlineBonus=(G.offlineBonus||1)*3}},
+  {id:'u9', name:'Global Call Network',      icon:'🌐',cost:1500000,desc:'All CPS ×3',            bought:false,apply:()=>{STAFF.forEach(s=>s.baseCps*=3)}},
+  {id:'u10',name:'Executive Suite Floor',    icon:'🏢',cost:5000000,desc:'Click ×10 + CPS ×1.5', bought:false,apply:()=>{G.clickValue*=10;STAFF.forEach(s=>s.baseCps*=1.5)}},
+];
+
+const MILESTONES=[
+  {id:'m1',val:100,    text:'$100 — First call connected! 📞'},
+  {id:'m2',val:1000,   text:'$1K — Getting busy! 🔥'},
+  {id:'m3',val:10000,  text:'$10K — Call center legend! 🌟'},
+  {id:'m4',val:100000, text:'$100K — Corporate overlord! 👑'},
+  {id:'m5',val:1000000,text:'$1M — JeeV Goes Global! 🌍'},
+  {id:'m6',val:10000000,text:'$10M — Billionaire Boss! 💎'},
+  {id:'m7',val:25000000,text:'$25M — Ready to sell? Check upgrades! 🏆'},
+];
+
+/* ── UTILS ── */
+function fmt(n){if(n>=1e12)return(n/1e12).toFixed(2)+'T';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.floor(n)+'';}
+function getCost(s){return Math.ceil(s.baseCost*Math.pow(s.costMult,s.owned))}
+function totalOwned(){return STAFF.reduce((a,s)=>a+s.owned,0)}
+function totalUpgrades(){return UPGRADES.filter(u=>u.bought).length}
+function calcCPS(){
+  let cps=0;const ab=1+STAFF[1].owned*2,gb=1+STAFF[5].owned*.05,sb=1+STAFF[2].owned*.1;
+  STAFF.forEach(s=>{let r=s.baseCps*s.owned;if(s.id==='agent')r*=ab;r*=gb*sb;cps+=r;});
+  G.cpsCache=cps;if(cps>G.peakCps)G.peakCps=cps;return cps;
+}
+function getCurrentSellTier(){
+  let tier=null;
+  for(const t of SELL_TIERS){if(G.totalEarned>=t.threshold)tier=t;}
+  return tier;
+}
+function getNextSellTier(){
+  for(const t of SELL_TIERS){if(G.totalEarned<t.threshold)return t;}
+  return null;
+}
+
+/* ── NOTIFY ── */
+function notify(msg,type=''){
+  const n=document.createElement('div');n.className='notif-item '+(type||'');n.textContent=msg;
+  document.getElementById('notif').appendChild(n);setTimeout(()=>n.remove(),3100);
+}
+
+/* ── MILESTONES ── */
+function checkMilestones(){
+  MILESTONES.forEach(m=>{
+    if(!G.milestones[m.id]&&G.totalEarned>=m.val){
+      G.milestones[m.id]=true;
+      document.getElementById('m-text').textContent=m.text;
+      const el=document.getElementById('milestone');el.style.display='block';
+      playSuccessChime();setTimeout(()=>el.style.display='none',3000);
+    }
+  });
+}
+
+/* ── SELL COMPANY ── */
+window.sellCompany=function(){
+  if(G.cash<SELL_UNLOCK_CASH){notify('💸 Company sale unlocks at $100M cash.','bad');return;}
+  const tier=getCurrentSellTier();
+  if(!tier||G.cash<tier.threshold){notify('💸 Keep earning to unlock the exit!','bad');return;}
+  const salePrice=Math.floor(G.cash*tier.mult);
+  playSellFanfare();
+  spawnCoinRain();
+  // populate end screen
+  document.getElementById('eg-sale-price').textContent='$'+fmt(salePrice);
+  document.getElementById('eg-flavor').textContent=tier.flavor;
+  document.getElementById('eg-total').textContent='$'+fmt(G.totalEarned);
+  document.getElementById('eg-staff').textContent=totalOwned();
+  document.getElementById('eg-cps').textContent=fmt(G.peakCps)+'/s';
+  document.getElementById('eg-upg').textContent=totalUpgrades()+'/10';
+  document.getElementById('endgame').classList.add('show');
+  G.gameOver=true;
+  saveGame();
+};
+window.newGame=function(){
+  try{
+    ['jeevcallcenter4','jeevcallcenter3','jeevcallcenter2','jeevcallcenter'].forEach(k=>localStorage.removeItem(k));
+  }catch(e){}
+  // small delay to ensure storage writes complete on some mobile browsers
+  setTimeout(()=>{location.reload();},60);
+};
+window.closeEndgame=function(){
+  document.getElementById('endgame').classList.remove('show');
+  document.getElementById('endgame').style.display='none';
+};
+
+function spawnCoinRain(){
+  const coins=['💰','💵','🤑','💎','✨'];
+  for(let i=0;i<22;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');el.className='coin-particle';
+      el.textContent=coins[Math.floor(Math.random()*coins.length)];
+      el.style.left=Math.random()*100+'vw';
+      el.style.top='-30px';
+      el.style.animationDuration=(1.4+Math.random()*.8)+'s';
+      el.style.animationDelay=Math.random()*.3+'s';
+      document.body.appendChild(el);setTimeout(()=>el.remove(),2800);
+    },i*60);
+  }
+}
+
+/* ── CLICK ── */
+function handleClick(e){
+  if(G.gameOver)return;
+  const val=G.clickValue*(1+STAFF[3].owned*.5);
+  earn(val);spawnClickMoney(e,val);playAnswerSFX();
+  const btn=document.getElementById('core-btn');
+  btn.classList.remove('btn-answering');void btn.offsetWidth;btn.classList.add('btn-answering');
+  setTimeout(()=>btn.classList.remove('btn-answering'),530);
+}
+window.handleClick=handleClick;
+
+function spawnClickMoney(e,val){
+  const el=document.createElement('div');el.className='float-money';el.textContent='+$'+fmt(val);
+  const rect=e.currentTarget?e.currentTarget.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0};
+  el.style.left=(e.clientX||rect.left+rect.width/2)+'px';
+  el.style.top=(e.clientY||rect.top+rect.height/2)+'px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1150);
+}
+
+function earn(amt){if(G.gameOver)return;G.cash+=amt;G.totalEarned+=amt;checkMilestones();renderStats();}
+
+/* ── BUY ── */
+function buyStaff(id){
+  if(G.gameOver){notify('🎮 Game over. Start a new game.','bad');return;}
+  const s=STAFF.find(x=>x.id===id);const cost=getCost(s);
+  if(G.cash<cost){notify('💸 Not enough cash!','bad');return;}
+  G.cash-=cost;s.owned++;calcCPS();renderStats();renderRight();renderFloor();
+  playHireSFX();notify('✅ Hired '+s.name+' #'+s.owned+'!','good');
+  if(s.id==='facilities'&&s.owned===1)startDrops();
+}
+window.buyStaff=buyStaff;
+function buyUpgrade(id){
+  if(G.gameOver){notify('🎮 Game over. Start a new game.','bad');return;}
+  const u=UPGRADES.find(x=>x.id===id);if(u.bought)return;
+  if(G.cash<u.cost){notify('💸 Not enough cash!','bad');return;}
+  G.cash-=u.cost;u.bought=true;u.apply();calcCPS();renderStats();renderRight();
+  playSuccessChime();notify('🚀 Upgrade: '+u.name+' activated!','good');
+}
+window.buyUpgrade=buyUpgrade;
+
+/* ── DROPS ── */
+let dropInterval=null;
+function startDrops(){
+  if(dropInterval)return;
+  dropInterval=setInterval(()=>{
+    if(STAFF[6].owned<1)return;
+    const amt=Math.floor(Math.random()*50+10)*STAFF[6].owned;
+    const el=document.createElement('div');el.className='float-money';
+    el.textContent='💰+$'+fmt(amt);
+    el.style.left=Math.random()*55+'%';el.style.top=(Math.random()*35+22)+'%';
+    el.style.position='fixed';el.style.cursor='pointer';el.style.zIndex='9997';
+    el.style.fontSize='clamp(18px,4vw,26px)';
+    let col=false;
+    const collect=()=>{if(col)return;col=true;earn(amt);el.remove();playCashDropSFX();notify('💰 +$'+fmt(amt),'good')};
+    el.addEventListener('click',collect);el.addEventListener('touchstart',collect,{passive:true});
+    document.body.appendChild(el);setTimeout(()=>{if(!col)el.remove();},3800);
+  },7000/Math.max(1,STAFF[6].owned));
+}
+
+/* ── PENALTY ── */
+function schedulePenalty(){
+  setTimeout(()=>{
+    if(!G.gameOver){
+      if(STAFF[7].owned>0){notify('🛡️ Security blocked a penalty!','good');}
+      else if(G.cash>0){
+        const loss=Math.min(G.cash*.1,G.cpsCache*5);G.cash-=loss;if(G.cash<0)G.cash=0;
+        playPenaltySFX();notify('⚠️ Outage! Lost $'+fmt(loss)+'!','bad');
+        document.getElementById('root').style.animation='penaltyShake .5s ease';
+        setTimeout(()=>document.getElementById('root').style.animation='',550);renderStats();
+      }
+    }
+    schedulePenalty();
+  },32000+Math.random()*60000);
+}
+
+/* ── BUBBLES ── */
+function spawnBubble(card){
+  const msgs=['Connected!','On hold...','Resolved!','New call!','SLA met!','Ring!','Closed!','Escalated!'];
+  const b=document.createElement('div');b.className='speech-bubble';b.textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  b.style.left=Math.floor(Math.random()*18+3)+'px';card.appendChild(b);setTimeout(()=>b.remove(),1350);
+}
+
+/* ── RENDER STATS ── */
+function renderStats(){
+  document.getElementById('s-cash').textContent=fmt(G.cash);
+  document.getElementById('s-cps').textContent=fmt(calcCPS());
+  document.getElementById('s-total').textContent=fmt(G.totalEarned);
+  document.getElementById('floor-label').textContent=totalOwned()+' staff';
+  document.getElementById('cps-label').textContent=totalOwned()>0?'$'+fmt(calcCPS())+'/s':'tap to earn';
+}
+
+/* ── RENDER FLOOR — fits content tightly ── */
+let floorCards={};
+function renderFloor(){
+  const grid=document.getElementById('floor-grid');
+  const empty=document.getElementById('floor-empty');
+  grid.innerHTML='';
+  floorCards={};
+  let any=false;
+  const groups={
+    'Frontline': ['agent'],
+    'Team Ops': ['teamlead','opsmgr'],
+    'Tech Ops': ['it','wfm'],
+    'Culture & Support': ['hr','facilities','security']
+  };
+  Object.entries(groups).forEach(([title, ids])=>{
+    const groupItems=ids.map(id=>STAFF.find(s=>s.id===id)).filter(s=>s&&s.owned>0);
+    if(!groupItems.length) return;
+    any=true;
+    const groupEl=document.createElement('div');groupEl.className='floor-group';
+    const titleEl=document.createElement('div');titleEl.className='floor-area-title';titleEl.textContent=title;
+    groupEl.appendChild(titleEl);
+    const groupGrid=document.createElement('div');groupGrid.className='floor-group-grid';
+    groupItems.forEach(s=>{
+      const tile=document.createElement('div');tile.className='floor-card active';
+      const iconCount=Math.min(s.owned, 6);
+      const icons=document.createElement('div');icons.className='desk-icons';
+      for(let i=0;i<iconCount;i++){
+        const unit=document.createElement('div');unit.className='desk-icon-unit';unit.textContent=s.icon;icons.appendChild(unit);
+      }
+      if(s.owned>iconCount){
+        const more=document.createElement('div');more.className='floor-count';more.textContent='+'+(s.owned-iconCount)+' more';
+        icons.appendChild(more);
+      }
+      if(s.owned>12) tile.classList.add('too-many');
+      else if(s.owned>6) tile.classList.add('many');
+      const label=document.createElement('div');label.className='floor-label';label.textContent=s.name;
+      tile.appendChild(icons);
+      tile.appendChild(label);
+      groupGrid.appendChild(tile);
+      floorCards[s.id]=tile;
+    });
+    groupEl.appendChild(groupGrid);
+    grid.appendChild(groupEl);
+  });
+  empty.style.display=any?'none':'block';
+}
+
+/* ── RENDER RIGHT (with sell section) ── */
+function renderRight(){
+  const ri=document.getElementById('right-inner');ri.innerHTML='';
+  // SELL SECTION at top
+  const curTier=getCurrentSellTier();
+  const nextTier=getNextSellTier();
+  const ss=document.createElement('div');ss.className='sell-section';
+  const sellUnlocked=G.cash>=SELL_UNLOCK_CASH;
+  if(!sellUnlocked){
+    const progress=Math.min(100,Math.floor((G.cash/SELL_UNLOCK_CASH)*100));
+    ss.innerHTML=`<h3>🏦 Sell JeeV Call Center</h3>
+    <p>Locked until you reach <b style="color:var(--gold)">$${fmt(SELL_UNLOCK_CASH)}</b> cash.</p>
+    <div class="sell-progress-wrap"><div class="sell-progress-bar" style="width:${progress}%"></div></div>
+    <div class="sell-progress-label">$${fmt(G.cash)} / $${fmt(SELL_UNLOCK_CASH)}</div>
+    <button id="sell-btn" class="" onclick="sellCompany()" disabled>💼 SALE LOCKED</button>`;
+  } else {
+    const pct=curTier?Math.min(100,Math.floor((G.totalEarned/SELL_TIERS[SELL_TIERS.length-1].threshold)*100)):0;
+    const sellReady=curTier&&G.cash>=curTier.threshold;
+    const saleVal=curTier?Math.floor(G.cash*curTier.mult):0;
+    ss.innerHTML=`<h3>🏦 Sell JeeV Call Center</h3>
+    <p>${curTier?`<b style="color:var(--gold)">${curTier.label}</b> — sell for <b style="color:var(--cyan)">$${fmt(saleVal)}</b>`:(nextTier?`Earn <b style="color:var(--gold)">$${fmt(nextTier.threshold)}</b> total to unlock first exit`:'Keep earning!')}</p>
+    ${nextTier&&curTier?`<p style="font-size:9px;color:var(--muted);margin-bottom:5px">Next tier at $${fmt(nextTier.threshold)} total earned</p>`:''}
+    <div class="sell-progress-wrap"><div class="sell-progress-bar" style="width:${Math.min(100,curTier?100:nextTier?Math.floor((G.totalEarned/nextTier.threshold)*100):0)}%"></div></div>
+    <div class="sell-progress-label">${curTier?'Exit unlocked! 🎉':(nextTier?'$'+fmt(G.totalEarned)+' / $'+fmt(nextTier.threshold):'Max tier reached!')}</div>
+    <button id="sell-btn" class="${sellReady?'ready':''}" onclick="sellCompany()">💼 SELL COMPANY</button>`;
+  }
+  ri.appendChild(ss);
+
+  // STAFF
+  [{key:'frontline',label:'📋 Frontline Ops'},{key:'tech',label:'💻 Workspace Tech'},{key:'culture',label:'🏛️ Site & Culture'}].forEach(d=>{
+    const t=document.createElement('div');t.className='dept-title';t.textContent=d.label;ri.appendChild(t);
+    STAFF.filter(s=>s.dept===d.key).forEach(s=>{
+      const cost=getCost(s);const cps=s.baseCps*s.owned;
+      const card=document.createElement('div');card.className='staff-card'+(G.cash>=cost?'':' cant-afford');
+      card.innerHTML='<div class="staff-icon">'+s.icon+'</div><div class="staff-info"><div class="staff-name">'+s.name+'</div><div class="staff-desc">'+s.desc+'</div><div class="staff-owned">Owned: '+s.owned+(s.owned>0?' • $'+fmt(cps)+'/s':'')+'</div><div class="gen-bar-wrap"><div class="gen-bar" id="bar-'+s.id+'"></div></div></div><div class="staff-right"><div class="staff-cost">$'+fmt(cost)+'</div><button class="buy-btn" onclick="buyStaff(\''+s.id+'\')">HIRE</button></div>';
+      ri.appendChild(card);
+    });
+  });
+
+  // UPGRADES
+  const ut=document.createElement('div');ut.className='dept-title';ut.textContent='🚀 Corporate Upgrades';ri.appendChild(ut);
+  UPGRADES.forEach(u=>{
+    const card=document.createElement('div');card.className='upgrade-card'+(u.bought?' bought':'');
+    card.innerHTML='<div class="upgrade-icon">'+u.icon+'</div><div class="upgrade-info"><div class="upgrade-name">'+u.name+'</div><div class="upgrade-desc">'+u.desc+'</div></div>'+(u.bought?'<div class="upgrade-bought-badge">✓ Active</div>':'<div class="upgrade-cost">$'+fmt(u.cost)+'</div>');
+    if(!u.bought)card.onclick=()=>buyUpgrade(u.id);ri.appendChild(card);
+  });
+}
+
+/* ── BAR TICKS ── */
+const barState={};STAFF.forEach(s=>{barState[s.id]={last:Date.now()}});
+function tickBars(now){
+  STAFF.forEach(s=>{
+    if(s.owned===0)return;const bar=document.getElementById('bar-'+s.id);if(!bar)return;
+    const spd=1+STAFF[2].owned*.1;const elapsed=now-barState[s.id].last;const pct=Math.min(100,(elapsed/(s.genInterval/spd))*100);
+    bar.style.width=pct+'%';
+    if(pct>=100){barState[s.id].last=now;const fc=floorCards[s.id];if(fc&&Math.random()<.32)spawnBubble(fc);}
+  });
+}
+
+/* ── GAME LOOP ── */
+function gameLoop(){
+  const now=Date.now();const dt=(now-G.lastTick)/1000;G.lastTick=now;
+  if(!G.gameOver){const cps=calcCPS();if(cps>0)earn(cps*dt);}
+  if(now-G._lastRender>2000){G._lastRender=now;renderRight();}
+  tickBars(now);requestAnimationFrame(gameLoop);
+}
+
+/* ── SAVE / LOAD ── */
+function saveGame(){
+  try{localStorage.setItem('jeevcallcenter4',JSON.stringify({
+    cash:G.cash,totalEarned:G.totalEarned,clickValue:G.clickValue,peakCps:G.peakCps,
+    milestones:G.milestones,offlineBonus:G.offlineBonus||1,lastSave:Date.now(),vol:currentVol,
+    staff:STAFF.map(s=>({id:s.id,owned:s.owned,baseCps:s.baseCps})),
+    upgrades:UPGRADES.map(u=>({id:u.id,bought:u.bought})),
+  }));}catch(e){}
+}
+function loadGame(){
+  try{
+    const raw=localStorage.getItem('jeevcallcenter4')||localStorage.getItem('jeevcallcenter3')||localStorage.getItem('jeevcallcenter2')||localStorage.getItem('jeevcallcenter');
+    if(!raw)return;const d=JSON.parse(raw);
+    G.cash=d.cash||0;G.totalEarned=d.totalEarned||0;G.clickValue=d.clickValue||1;
+    G.milestones=d.milestones||{};G.offlineBonus=d.offlineBonus||1;G.peakCps=d.peakCps||0;
+    if(d.vol!==undefined){currentVol=d.vol;const sl=document.getElementById('vol-slider');if(sl)sl.value=Math.round(d.vol*100);}
+    (d.upgrades||[]).forEach(ud=>{const u=UPGRADES.find(x=>x.id===ud.id);if(u&&ud.bought&&!u.bought){u.bought=true;u.apply();}});
+    (d.staff||[]).forEach(sd=>{const s=STAFF.find(x=>x.id===sd.id);if(s){s.owned=sd.owned||0;if(sd.baseCps)s.baseCps=sd.baseCps;}});
+    const offline=(Date.now()-d.lastSave)/1000;
+    if(offline>10){
+      const cps=calcCPS();const mult=(G.offlineBonus||1)*(1+STAFF[4].owned*.5);const gain=cps*offline*.5*mult;
+      if(gain>0){G.cash+=gain;G.totalEarned+=gain;const mins=Math.floor(offline/60);setTimeout(()=>notify('🌙 Offline '+mins+'m → +$'+fmt(gain),'good'),900);}
+    }
+  }catch(e){console.warn('Load failed',e);}
+}
+
+/* ── INIT ── */
+function init(){
+  loadGame();calcCPS();renderStats();renderFloor();renderRight();schedulePenalty();
+  if(STAFF[6].owned>0)startDrops();
+  setInterval(saveGame,15000);setInterval(renderStats,500);
+  requestAnimationFrame(gameLoop);
+  const btn=document.getElementById('core-btn');
+  btn.onclick=handleClick;
+  btn.addEventListener('touchstart',function(e){
+    e.preventDefault();const t=e.touches[0];
+    handleClick({currentTarget:btn,clientX:t.clientX,clientY:t.clientY});
+  },{passive:false});
+  // mobile: ensure topbar New Game button responds to touch
+  const resetBtn=document.getElementById('reset-btn');
+  if(resetBtn){
+    resetBtn.addEventListener('touchstart',function(e){e.preventDefault();newGame();},{passive:false});
+    // also allow Enter/Space keyboard activation
+    resetBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();newGame();}});
+  }
+}
+
+})();
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Done — $(wc -c < /mnt/user-data/outputs/JeeV_CallCenter.html) bytes"
